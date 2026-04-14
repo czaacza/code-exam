@@ -1,0 +1,11 @@
+{
+  "name": "codeprobe",
+  "version": "0.1.0",
+  "description": "Gamified code quiz plugin for Claude Code",
+  "scripts": {
+    "test": "node --test tests/store.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
