@@ -176,6 +176,87 @@ function recordResult(resultJson) {
   return JSON.stringify({ xpEarned, ...stats });
 }
 
+const BADGES = [
+  {
+    id: 'first-blood',
+    name: 'First Blood',
+    description: 'Complete your first quiz',
+    check: (scores) => scores.length >= 1,
+  },
+  {
+    id: 'perfect-run',
+    name: 'Perfect Run',
+    description: 'Score 100% on any quiz',
+    check: (scores) => scores.some(s => s.score === 1.0),
+  },
+  {
+    id: 'module-master',
+    name: 'Module Master',
+    description: 'Score ≥ 80% on the same module 3 times',
+    check: (scores) => {
+      const byModule = {};
+      for (const s of scores) {
+        if (s.score >= 0.8) byModule[s.module] = (byModule[s.module] || 0) + 1;
+      }
+      return Object.values(byModule).some(count => count >= 3);
+    },
+  },
+  {
+    id: 'streak-week',
+    name: 'Streak Week',
+    description: '7-day quiz streak',
+    check: (scores, stats) => stats.longestStreak >= 7,
+  },
+  {
+    id: 'deep-diver',
+    name: 'Deep Diver',
+    description: 'Score 100% on a quiz that included a hard question',
+    check: (scores) => scores.some(s =>
+      s.score === 1.0 && (s.questions || []).some(q => q.difficulty === 'hard')
+    ),
+  },
+  {
+    id: 'explorer',
+    name: 'Explorer',
+    description: 'Quiz on 5 different modules',
+    check: (scores) => new Set(scores.map(s => s.module)).size >= 5,
+  },
+  {
+    id: 'speed-demon',
+    name: 'Speed Demon',
+    description: 'Perfect score in under 60 seconds',
+    check: (scores) => scores.some(s => s.score === 1.0 && s.durationSeconds < 60),
+  },
+  {
+    id: 'centurion',
+    name: 'Centurion',
+    description: 'Complete 100 quizzes',
+    check: (scores) => scores.length >= 100,
+  },
+];
+
+function readAllScores() {
+  ensureDir();
+  if (!fs.existsSync(SCORES_FILE)) return [];
+  return fs.readFileSync(SCORES_FILE, 'utf8')
+    .split('\n')
+    .filter(line => line.trim())
+    .map(line => JSON.parse(line));
+}
+
+function computeAchievements(scores, stats) {
+  const earned = [];
+  const locked = [];
+  for (const badge of BADGES) {
+    if (badge.check(scores, stats)) {
+      earned.push({ id: badge.id, name: badge.name, description: badge.description });
+    } else {
+      locked.push({ id: badge.id, name: badge.name, description: badge.description });
+    }
+  }
+  return { earned, locked };
+}
+
 // CLI execution guard — only runs when called directly, not when require()'d in tests
 if (require.main === module) {
   const [,, command, ...args] = process.argv;
@@ -192,10 +273,17 @@ if (require.main === module) {
     case 'stats':
       console.log(JSON.stringify(readStats(), null, 2));
       break;
+    case 'achievements': {
+      const scores = readAllScores();
+      const stats = readStats();
+      const result = computeAchievements(scores, stats);
+      console.log(JSON.stringify(result, null, 2));
+      break;
+    }
     default:
       console.error(`Unknown command: ${command}`);
       process.exit(1);
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak, readStats, writeStats, recordResult };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };

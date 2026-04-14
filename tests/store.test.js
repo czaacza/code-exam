@@ -211,3 +211,52 @@ test('recordResult: second quiz on same module increments moduleStats', () => {
   assert.strictEqual(stats.moduleStats['src/payments'].quizzes, 2);
   assert.strictEqual(stats.totalQuizzes, 2);
 });
+
+test('computeAchievements: First Blood earned after 1 quiz', () => {
+  const scores = [{ score: 0.6, module: 'src/a', questions: [], durationSeconds: 100 }];
+  const stats = { longestStreak: 1, totalQuizzes: 1 };
+  const result = store.computeAchievements(scores, stats);
+  assert.ok(result.earned.some(b => b.id === 'first-blood'));
+});
+
+test('computeAchievements: Perfect Run earned when score is 1.0', () => {
+  const scores = [{ score: 1.0, module: 'src/a', questions: [], durationSeconds: 100 }];
+  const stats = { longestStreak: 1, totalQuizzes: 1 };
+  const result = store.computeAchievements(scores, stats);
+  assert.ok(result.earned.some(b => b.id === 'perfect-run'));
+});
+
+test('computeAchievements: Module Master earned after 3 quizzes >= 0.8 on same module', () => {
+  const scores = [
+    { score: 0.8, module: 'src/auth', questions: [], durationSeconds: 100 },
+    { score: 0.9, module: 'src/auth', questions: [], durationSeconds: 100 },
+    { score: 1.0, module: 'src/auth', questions: [], durationSeconds: 100 },
+  ];
+  const stats = { longestStreak: 1, totalQuizzes: 3 };
+  const result = store.computeAchievements(scores, stats);
+  assert.ok(result.earned.some(b => b.id === 'module-master'));
+});
+
+test('computeAchievements: Explorer earned after quizzing on 5 different modules', () => {
+  const scores = ['src/a','src/b','src/c','src/d','src/e'].map(m => ({
+    score: 0.5, module: m, questions: [], durationSeconds: 100
+  }));
+  const stats = { longestStreak: 1, totalQuizzes: 5 };
+  const result = store.computeAchievements(scores, stats);
+  assert.ok(result.earned.some(b => b.id === 'explorer'));
+});
+
+test('computeAchievements: Speed Demon earned with perfect score under 60s', () => {
+  const scores = [{ score: 1.0, module: 'src/a', questions: [], durationSeconds: 55 }];
+  const stats = { longestStreak: 1, totalQuizzes: 1 };
+  const result = store.computeAchievements(scores, stats);
+  assert.ok(result.earned.some(b => b.id === 'speed-demon'));
+});
+
+test('computeAchievements: unearned badges appear in locked list', () => {
+  const scores = [];
+  const stats = { longestStreak: 0, totalQuizzes: 0 };
+  const result = store.computeAchievements(scores, stats);
+  assert.strictEqual(result.earned.length, 0);
+  assert.ok(result.locked.length > 0);
+});
