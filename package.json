@@ -8,6 +8,17 @@
   "scripts": {
     "test": "node --test tests/store.test.js"
   },
+  "claude": {
+    "skills": [
+      "skills/quiz/skill.md",
+      "skills/quiz-status/skill.md",
+      "skills/quiz-achievements/skill.md"
+    ],
+    "hooks": {
+      "PostToolUse": "hooks/post-tool-use.js",
+      "SessionStart": "hooks/session-start.js"
+    }
+  },
   "devDependencies": {
     "esbuild": "^0.24.0"
   }
