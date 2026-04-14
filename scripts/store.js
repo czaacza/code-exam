@@ -151,7 +151,7 @@ function recordResult(resultJson) {
     result.questions || [],
     result.score,
     isNewModule,
-    isNewStreakDay && streakUpdate.streak > stats.streak
+    isNewStreakDay
   );
 
   if (!stats.moduleStats[result.module]) {
