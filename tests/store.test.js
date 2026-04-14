@@ -45,3 +45,57 @@ test('addToQueue deduplicates entries', () => {
   store.addToQueue('src/bar.ts');
   assert.deepStrictEqual(store.readQueue(), ['src/foo.ts', 'src/bar.ts']);
 });
+
+test('calculateLevel: 0 XP = level 1 Newcomer', () => {
+  const result = store.calculateLevel(0);
+  assert.strictEqual(result.level, 1);
+  assert.strictEqual(result.title, 'Newcomer');
+});
+
+test('calculateLevel: 499 XP = level 4 Newcomer', () => {
+  const result = store.calculateLevel(499);
+  assert.strictEqual(result.level, 4);
+  assert.strictEqual(result.title, 'Newcomer');
+});
+
+test('calculateLevel: 500 XP = level 5 Apprentice', () => {
+  const result = store.calculateLevel(500);
+  assert.strictEqual(result.level, 5);
+  assert.strictEqual(result.title, 'Apprentice');
+});
+
+test('calculateLevel: 2000 XP = level 10 Specialist', () => {
+  const result = store.calculateLevel(2000);
+  assert.strictEqual(result.level, 10);
+  assert.strictEqual(result.title, 'Specialist');
+});
+
+test('calculateLevel: 12000 XP = level 20 Architect', () => {
+  const result = store.calculateLevel(12000);
+  assert.strictEqual(result.level, 20);
+  assert.strictEqual(result.title, 'Architect');
+});
+
+test('calculateXP: 2 correct medium answers + perfect = 150 XP', () => {
+  const questions = [
+    { difficulty: 'medium', correct: true },
+    { difficulty: 'medium', correct: true },
+  ];
+  // 25 + 25 + 100 perfect bonus = 150
+  const xp = store.calculateXP(questions, 1.0, false, false);
+  assert.strictEqual(xp, 150);
+});
+
+test('calculateXP: new module adds 50 XP bonus', () => {
+  const questions = [{ difficulty: 'easy', correct: true }];
+  // 10 + 100 perfect + 50 new module = 160
+  const xp = store.calculateXP(questions, 1.0, true, false);
+  assert.strictEqual(xp, 160);
+});
+
+test('calculateXP: streak day adds 20 XP', () => {
+  const questions = [{ difficulty: 'easy', correct: false }];
+  // 0 + 20 streak = 20
+  const xp = store.calculateXP(questions, 0.0, false, true);
+  assert.strictEqual(xp, 20);
+});
