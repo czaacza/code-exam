@@ -1,10 +1,12 @@
 # CodeProbe
 
-CodeProbe is installed. It quizzes you on code changes to reinforce understanding.
+CodeProbe is installed. It quizzes you on the codebase to reinforce understanding.
 
 ## Available skills
 
-- `/quiz` — quiz on current git diff or a specific module path
+- `/quiz` — smart codebase exploration: picks unquizzed, weak, or stale modules automatically
+- `/quiz <path>` — quiz on a specific file or directory
+- `/quiz --diff` — quiz on current git diff or queued Claude changes
 - `/quiz-status` — show XP, level, streak, recent sessions
 - `/quiz-achievements` — show earned badges and progress toward locked ones
 

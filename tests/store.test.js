@@ -181,6 +181,7 @@ test('recordResult: appends to scores.jsonl and updates stats.json', () => {
   assert.strictEqual(parsed.totalQuizzes, 1);
   assert.ok(parsed.moduleStats['src/payments'], 'moduleStats should have src/payments');
   assert.strictEqual(parsed.moduleStats['src/payments'].quizzes, 1);
+  assert.ok(parsed.moduleStats['src/payments'].lastQuizDate, 'moduleStats should have lastQuizDate');
 
   // Verify scores.jsonl has one line
   const lines = fs.readFileSync(scoresFile, 'utf8').trim().split('\n');

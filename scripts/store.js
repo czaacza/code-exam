@@ -155,12 +155,13 @@ function recordResult(resultJson) {
   );
 
   if (!stats.moduleStats[result.module]) {
-    stats.moduleStats[result.module] = { quizzes: 0, correct: 0, total: 0 };
+    stats.moduleStats[result.module] = { quizzes: 0, correct: 0, total: 0, lastQuizDate: null };
   }
   const mod = stats.moduleStats[result.module];
   mod.quizzes++;
   mod.correct += result.correct || 0;
   mod.total += (result.questions || []).length || 5;
+  mod.lastQuizDate = today;
 
   stats.xp += xpEarned;
   stats.totalQuizzes++;

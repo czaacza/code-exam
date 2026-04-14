@@ -1,22 +1,37 @@
 ---
 name: quiz
-description: "Quiz yourself on code changes or any module. Generates questions from git diff or file contents, runs interactive session, tracks XP and streaks. Usage: /quiz (diff mode) or /quiz <path> (module mode)."
+description: "Quiz yourself on any part of the codebase. Default: smart selection of unquizzed/weak modules. /quiz <path> for specific files. /quiz --diff for git diff mode. Tracks XP, streaks, and achievements."
 ---
 
 # CodeProbe Quiz
 
-Run an interactive quiz to test your understanding of code changes. You are the quiz master — generate questions from the code, ask them one at a time, grade answers, and track the results.
+Run an interactive quiz to test your understanding of the codebase. You are the quiz master — generate questions from the code, ask them one at a time, grade answers, and track the results.
 
 ## Step 1: Determine Source
 
-**If invoked as `/quiz` with no argument:**
-1. Run `git diff HEAD` via Bash. If output is non-empty, use that diff as the source.
-2. If git diff is empty, run `node scripts/store.js queue` via Bash to get queued files. If the queue is non-empty, read those files as the source.
-3. If both are empty, tell the user: "No staged changes or queued files found. Use `/quiz <path>` to quiz on a specific module." and stop.
+**If invoked as `/quiz` with no argument (codebase exploration mode):**
+
+This is the default — quiz the user on parts of the codebase they haven't covered or are weak on.
+
+1. Run `node scripts/store.js stats` via Bash to get current stats including `moduleStats`.
+2. Use Glob to scan the project for source files: `**/*.{ts,js,py,go,rs,java,rb,tsx,jsx}`. Exclude `node_modules/`, `dist/`, `build/`, `*.test.*`, `*.spec.*`, `__tests__/`, `*.lock`, `*.generated.*`.
+3. Group the found files into modules (by their parent directory, e.g. `src/payments/refund.ts` → `src/payments`).
+4. Select which module to quiz on using this priority:
+   - **Never quizzed** — modules with no entry in `moduleStats` (highest priority)
+   - **Weak** — modules where accuracy (correct/total) is below 70%
+   - **Stale** — modules where `lastQuizDate` is oldest (quizzed longest ago)
+   - If all modules are well-covered, pick one at random
+5. Read 2-4 source files from the selected module using the Read tool.
+6. Tell the user which module was selected: "Selected module: `{module}` (reason: {never quizzed / weak area / stale knowledge})"
 
 **If invoked as `/quiz <path>`:**
 1. Use the Read tool to read the specified file, or Glob + Read to read source files in the specified directory.
 2. Use the file contents as the source — no diff needed.
+
+**If invoked as `/quiz --diff`:**
+1. Run `git diff HEAD` via Bash. If output is non-empty, use that diff as the source.
+2. If git diff is empty, run `node scripts/store.js queue` via Bash to get queued files. If the queue is non-empty, read those files as the source.
+3. If both are empty, tell the user: "No staged changes or queued files found. Use `/quiz` for codebase exploration or `/quiz <path>` for a specific module." and stop.
 
 ## Step 2: Analyze the Code
 
