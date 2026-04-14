@@ -1,45 +1,58 @@
 ---
 name: exam-status
-description: "Show your Code Exam stats: GPA, rank, streak, and module grades. Run /exam-status to see your transcript."
+description: "Show your Code Exam transcript: GPA, streak, per-module grades, and codebase coverage. Run /exam-status to see your progress."
 ---
 
 # Code Exam — Transcript
 
-Display the user's current exam transcript.
+Display the user's exam transcript with codebase coverage analysis.
 
 ## Steps
 
-1. Run via Bash:
+1. Run via Bash to get current stats:
 ```
 node scripts/store.js stats
 ```
 
-2. Parse the JSON output. The output has this shape:
-```json
-{"gpa":3.5,"rank":"Sophomore","streak":5,"longestStreak":12,"lastExamDate":"2026-04-14","totalExams":15,"allGrades":[4.0,3.0,4.0],"moduleStats":{"src/payments":{"exams":8,"correct":31,"total":40,"lastExamDate":"2026-04-14","grades":[3.0,4.0]}}}
-```
+2. Scan the project for all source files using Glob: `**/*.{ts,js,py,go,rs,java,rb,tsx,jsx}`. Exclude `node_modules/`, `dist/`, `build/`, `*.test.*`, `*.spec.*`, `__tests__/`, `*.lock`, `*.generated.*`.
 
-3. Calculate the module GPA for each module: average of its `grades` array.
+3. Parse the stats JSON. Compare `examinedFiles` against the total source files found to calculate codebase coverage.
 
 4. Display in this format:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Code Exam — Transcript
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{rank}  ·  GPA: {gpa}/4.0  ·  {totalExams} exams completed
+GPA: {gpa}/4.0  ·  {totalExams} exams completed
 🔥 Streak: {streak} days (longest: {longestStreak})
 
+Codebase Coverage: {examinedFiles.length}/{totalSourceFiles} files ({pct}%)
+[{coverage bar, 20 chars, █/░}]
+
 Module Grades:
-  {module}: {moduleGPA}/4.0 ({exams} exams, {accuracy}% accuracy)
+  {module}: GPA {moduleGPA}/4.0 · {accuracy}% accuracy · {examinedFiles}/{totalModuleFiles} files
   (show all modules sorted by exam count descending)
 
-Grading Scale: A (90%+) · B (80-89%) · C (70-79%) · D (60-69%) · F (<60%)
-Ranks: Freshman (0-10) · Sophomore (11-25) · Junior (26-50) · Senior (51-100) · Graduate (101+)
+Unexamined Modules:
+  {list of modules with source files but no exams taken}
+  (group by directory, show file count per module)
+
+Grading: A (90%+) · B (80-89%) · C (70-79%) · D (60-69%) · F (<60%)
 
 Run /exam to take an exam.
 Run /exam-achievements to see your badges.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Accuracy for each module = round(correct / total * 100).
+**Coverage calculation:**
+- `examinedFiles` from stats.json = files that have been part of at least one exam
+- Total source files = all files found by Glob scan
+- Coverage % = (examined / total) * 100, rounded
+- For per-module coverage: count examined files vs total files in that module's directory
+
+**Module GPA:** Average of the `grades` array for each module entry in moduleStats.
+
+**Accuracy:** round(correct / total * 100) per module.
+
 If no exams yet, show: "No exams taken yet. Run /exam to get started!"

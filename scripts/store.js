@@ -59,27 +59,12 @@ const GRADE_THRESHOLDS = [
   { grade: 'F', minPct: 0,  gpa: 0.0 },
 ];
 
-const RANKS = [
-  { title: 'Freshman',   minExams: 0 },
-  { title: 'Sophomore',  minExams: 11 },
-  { title: 'Junior',     minExams: 26 },
-  { title: 'Senior',     minExams: 51 },
-  { title: 'Graduate',   minExams: 101 },
-];
-
 function calculateGrade(score) {
   const pct = Math.round(score * 100);
   for (const t of GRADE_THRESHOLDS) {
     if (pct >= t.minPct) return { grade: t.grade, gpa: t.gpa, pct };
   }
   return { grade: 'F', gpa: 0.0, pct };
-}
-
-function calculateRank(totalExams) {
-  for (let i = RANKS.length - 1; i >= 0; i--) {
-    if (totalExams >= RANKS[i].minExams) return RANKS[i].title;
-  }
-  return 'Freshman';
 }
 
 function calculateGPA(allGrades) {
@@ -112,12 +97,12 @@ function readStats() {
   if (!fs.existsSync(STATS_FILE)) {
     return {
       gpa: 0.0,
-      rank: 'Freshman',
       streak: 0,
       longestStreak: 0,
       lastExamDate: null,
       totalExams: 0,
       allGrades: [],
+      examinedFiles: [],
       moduleStats: {},
     };
   }
@@ -149,7 +134,7 @@ function recordResult(resultJson) {
   const streakUpdate = updateStreak(stats, today);
 
   if (!stats.moduleStats[result.module]) {
-    stats.moduleStats[result.module] = { exams: 0, correct: 0, total: 0, lastExamDate: null, grades: [] };
+    stats.moduleStats[result.module] = { exams: 0, correct: 0, total: 0, lastExamDate: null, grades: [], examinedFiles: [] };
   }
   const mod = stats.moduleStats[result.module];
   mod.exams++;
@@ -158,13 +143,19 @@ function recordResult(resultJson) {
   mod.lastExamDate = today;
   mod.grades.push(gpa);
 
+  // Track which files were examined
+  const files = result.files || [];
+  for (const f of files) {
+    if (!mod.examinedFiles.includes(f)) mod.examinedFiles.push(f);
+    if (!stats.examinedFiles.includes(f)) stats.examinedFiles.push(f);
+  }
+
   stats.allGrades.push(gpa);
   stats.gpa = calculateGPA(stats.allGrades);
   stats.totalExams++;
   stats.streak = streakUpdate.streak;
   stats.longestStreak = streakUpdate.longestStreak;
   stats.lastExamDate = today;
-  stats.rank = calculateRank(stats.totalExams);
 
   writeStats(stats);
   return JSON.stringify({ grade, gpa, pct, ...stats });
@@ -280,4 +271,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateGrade, calculateRank, calculateGPA, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateGrade, calculateGPA, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };

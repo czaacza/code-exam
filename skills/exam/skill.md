@@ -162,10 +162,11 @@ node scripts/store.js record '<json>'
 Where `<json>` is:
 ```json
 {
-  "module": "<path or description of source>",
+  "module": "<module path, e.g. src/payments>",
   "score": <correct/5 as decimal>,
   "correct": <number correct>,
   "durationSeconds": <approximate seconds elapsed>,
+  "files": ["<list of source files you read for this exam>"],
   "questions": [
     {"difficulty": "<easy|medium|hard>", "correct": <true|false>},
     ...one entry per question...
@@ -173,19 +174,16 @@ Where `<json>` is:
 }
 ```
 
+**Important:** Include the `files` array listing every source file you read to generate questions. This tracks codebase coverage.
+
 The store.js record command outputs JSON like:
 ```json
-{"grade":"B","gpa":3.5,"pct":80,"rank":"Sophomore","streak":5,"longestStreak":12,"totalExams":15,"moduleStats":{...}}
+{"grade":"B","gpa":3.5,"pct":80,"streak":5,"longestStreak":12,"totalExams":15,"examinedFiles":[...],"moduleStats":{...}}
 ```
 
 Parse that output and display:
 ```
-Grade: {grade}  ·  GPA: {gpa}  ·  🔥 Streak: {streak} days  ·  {rank}
-```
-
-If the rank changed from what it was before (e.g. Freshman → Sophomore), add:
-```
-🎓 RANK UP! You are now a {rank}!
+Grade: {grade}  ·  GPA: {gpa}/4.0  ·  🔥 Streak: {streak} days  ·  {totalExams} exams
 ```
 
 Finally, clear the queue:

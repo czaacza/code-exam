@@ -87,28 +87,6 @@ test('calculateGrade: 40% = F, 0.0 GPA', () => {
   assert.strictEqual(result.gpa, 0.0);
 });
 
-// === Rank calculation ===
-
-test('calculateRank: 0 exams = Freshman', () => {
-  assert.strictEqual(store.calculateRank(0), 'Freshman');
-});
-
-test('calculateRank: 11 exams = Sophomore', () => {
-  assert.strictEqual(store.calculateRank(11), 'Sophomore');
-});
-
-test('calculateRank: 26 exams = Junior', () => {
-  assert.strictEqual(store.calculateRank(26), 'Junior');
-});
-
-test('calculateRank: 51 exams = Senior', () => {
-  assert.strictEqual(store.calculateRank(51), 'Senior');
-});
-
-test('calculateRank: 101 exams = Graduate', () => {
-  assert.strictEqual(store.calculateRank(101), 'Graduate');
-});
-
 // === GPA calculation ===
 
 test('calculateGPA: empty grades = 0.0', () => {
@@ -168,11 +146,11 @@ test('readStats: returns default stats when file does not exist', () => {
 
   const stats = store.readStats();
   assert.strictEqual(stats.gpa, 0.0);
-  assert.strictEqual(stats.rank, 'Freshman');
   assert.strictEqual(stats.streak, 0);
   assert.strictEqual(stats.totalExams, 0);
   assert.deepStrictEqual(stats.moduleStats, {});
   assert.deepStrictEqual(stats.allGrades, []);
+  assert.deepStrictEqual(stats.examinedFiles, []);
 });
 
 // === Record result ===
@@ -189,6 +167,7 @@ test('recordResult: records exam with grade B for 80% score', () => {
     score: 0.8,
     correct: 4,
     durationSeconds: 90,
+    files: ['src/payments/refund.ts', 'src/payments/types.ts'],
     questions: [
       { difficulty: 'medium', correct: true },
       { difficulty: 'medium', correct: true },
@@ -204,10 +183,11 @@ test('recordResult: records exam with grade B for 80% score', () => {
   assert.strictEqual(parsed.grade, 'B');
   assert.strictEqual(parsed.gpa, 3.0);
   assert.strictEqual(parsed.totalExams, 1);
-  assert.strictEqual(parsed.rank, 'Freshman');
   assert.ok(parsed.moduleStats['src/payments']);
   assert.strictEqual(parsed.moduleStats['src/payments'].exams, 1);
   assert.ok(parsed.moduleStats['src/payments'].lastExamDate);
+  assert.deepStrictEqual(parsed.moduleStats['src/payments'].examinedFiles, ['src/payments/refund.ts', 'src/payments/types.ts']);
+  assert.deepStrictEqual(parsed.examinedFiles, ['src/payments/refund.ts', 'src/payments/types.ts']);
 
   // Verify scores.jsonl
   const lines = fs.readFileSync(scoresFile, 'utf8').trim().split('\n');
@@ -237,6 +217,32 @@ test('recordResult: second exam updates GPA correctly', () => {
   assert.strictEqual(parsed.totalExams, 2);
   assert.strictEqual(parsed.gpa, 3.5); // (3.0 + 4.0) / 2
   assert.strictEqual(parsed.moduleStats['src/payments'].exams, 2);
+});
+
+test('recordResult: tracks examined files and deduplicates across exams', () => {
+  const result = {
+    module: 'src/payments',
+    score: 0.6,
+    correct: 3,
+    durationSeconds: 120,
+    files: ['src/payments/refund.ts', 'src/payments/index.ts'],
+    questions: [
+      { difficulty: 'easy', correct: true },
+      { difficulty: 'easy', correct: true },
+      { difficulty: 'easy', correct: true },
+      { difficulty: 'medium', correct: false },
+      { difficulty: 'medium', correct: false },
+    ],
+  };
+
+  store.recordResult(JSON.stringify(result));
+  const stats = store.readStats();
+  // refund.ts was in both exams — should not be duplicated
+  const paymentFiles = stats.moduleStats['src/payments'].examinedFiles;
+  assert.ok(paymentFiles.includes('src/payments/refund.ts'));
+  assert.ok(paymentFiles.includes('src/payments/types.ts'));
+  assert.ok(paymentFiles.includes('src/payments/index.ts'));
+  assert.strictEqual(paymentFiles.filter(f => f === 'src/payments/refund.ts').length, 1);
 });
 
 // === Achievements ===
