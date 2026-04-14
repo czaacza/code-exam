@@ -134,3 +134,80 @@ test('updateStreak: gap of 2+ days resets streak to 1', () => {
   assert.strictEqual(result.streak, 1);
   assert.strictEqual(result.longestStreak, 10);
 });
+
+test('readStats: returns default stats when file does not exist', () => {
+  // Use a sub-directory to guarantee no stats.json exists
+  const freshHome = fs.mkdtempSync(path.join(os.tmpdir(), 'codeprobe-fresh-'));
+  const origDir = path.join(tmpHome, '.codeprobe', 'stats.json');
+  // Delete stats.json if it exists from previous tests
+  if (fs.existsSync(origDir)) fs.unlinkSync(origDir);
+
+  const stats = store.readStats();
+  assert.strictEqual(stats.xp, 0);
+  assert.strictEqual(stats.level, 1);
+  assert.strictEqual(stats.levelTitle, 'Newcomer');
+  assert.strictEqual(stats.streak, 0);
+  assert.strictEqual(stats.totalQuizzes, 0);
+  assert.deepStrictEqual(stats.moduleStats, {});
+  fs.rmSync(freshHome, { recursive: true, force: true });
+});
+
+test('recordResult: appends to scores.jsonl and updates stats.json', () => {
+  // Clear any prior state
+  const cpDir = path.join(tmpHome, '.codeprobe');
+  const statsFile = path.join(cpDir, 'stats.json');
+  const scoresFile = path.join(cpDir, 'scores.jsonl');
+  if (fs.existsSync(statsFile)) fs.unlinkSync(statsFile);
+  if (fs.existsSync(scoresFile)) fs.unlinkSync(scoresFile);
+
+  const result = {
+    module: 'src/payments',
+    score: 0.8,
+    correct: 4,
+    durationSeconds: 90,
+    questions: [
+      { difficulty: 'medium', correct: true },
+      { difficulty: 'medium', correct: true },
+      { difficulty: 'hard', correct: true },
+      { difficulty: 'hard', correct: true },
+      { difficulty: 'easy', correct: false },
+    ],
+  };
+
+  const output = store.recordResult(JSON.stringify(result));
+  const parsed = JSON.parse(output);
+
+  assert.ok(parsed.xpEarned > 0, 'xpEarned should be positive');
+  assert.strictEqual(parsed.totalQuizzes, 1);
+  assert.ok(parsed.moduleStats['src/payments'], 'moduleStats should have src/payments');
+  assert.strictEqual(parsed.moduleStats['src/payments'].quizzes, 1);
+
+  // Verify scores.jsonl has one line
+  const lines = fs.readFileSync(scoresFile, 'utf8').trim().split('\n');
+  assert.strictEqual(lines.length, 1);
+  const scored = JSON.parse(lines[0]);
+  assert.strictEqual(scored.module, 'src/payments');
+  assert.ok(scored.id, 'should have an id');
+  assert.ok(scored.ts, 'should have a timestamp');
+});
+
+test('recordResult: second quiz on same module increments moduleStats', () => {
+  const result = {
+    module: 'src/payments',
+    score: 1.0,
+    correct: 5,
+    durationSeconds: 55,
+    questions: [
+      { difficulty: 'medium', correct: true },
+      { difficulty: 'medium', correct: true },
+      { difficulty: 'hard', correct: true },
+      { difficulty: 'hard', correct: true },
+      { difficulty: 'easy', correct: true },
+    ],
+  };
+
+  store.recordResult(JSON.stringify(result));
+  const stats = store.readStats();
+  assert.strictEqual(stats.moduleStats['src/payments'].quizzes, 2);
+  assert.strictEqual(stats.totalQuizzes, 2);
+});

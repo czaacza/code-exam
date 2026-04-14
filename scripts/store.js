@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 
 const DIR = path.join(os.homedir(), '.codeprobe');
 const SCORES_FILE = path.join(DIR, 'scores.jsonl');
@@ -107,6 +108,74 @@ function updateStreak(stats, todayStr) {
   }
 }
 
+function readStats() {
+  ensureDir();
+  if (!fs.existsSync(STATS_FILE)) {
+    return {
+      xp: 0,
+      level: 1,
+      levelTitle: 'Newcomer',
+      streak: 0,
+      longestStreak: 0,
+      lastQuizDate: null,
+      totalQuizzes: 0,
+      moduleStats: {},
+    };
+  }
+  return JSON.parse(fs.readFileSync(STATS_FILE, 'utf8'));
+}
+
+function writeStats(stats) {
+  ensureDir();
+  fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+}
+
+function recordResult(resultJson) {
+  const result = JSON.parse(resultJson);
+  ensureDir();
+
+  if (!result.id) result.id = crypto.randomUUID();
+  if (!result.ts) result.ts = new Date().toISOString();
+
+  // Append to scores.jsonl
+  fs.appendFileSync(SCORES_FILE, JSON.stringify(result) + '\n');
+
+  const stats = readStats();
+  const today = new Date().toISOString().split('T')[0];
+
+  const isNewModule = !stats.moduleStats[result.module];
+  const streakUpdate = updateStreak(stats, today);
+  const isNewStreakDay = stats.lastQuizDate !== today;
+
+  const xpEarned = calculateXP(
+    result.questions || [],
+    result.score,
+    isNewModule,
+    isNewStreakDay && streakUpdate.streak > stats.streak
+  );
+
+  if (!stats.moduleStats[result.module]) {
+    stats.moduleStats[result.module] = { quizzes: 0, correct: 0, total: 0 };
+  }
+  const mod = stats.moduleStats[result.module];
+  mod.quizzes++;
+  mod.correct += result.correct || 0;
+  mod.total += (result.questions || []).length || 5;
+
+  stats.xp += xpEarned;
+  stats.totalQuizzes++;
+  stats.streak = streakUpdate.streak;
+  stats.longestStreak = streakUpdate.longestStreak;
+  stats.lastQuizDate = today;
+
+  const { level, title } = calculateLevel(stats.xp);
+  stats.level = level;
+  stats.levelTitle = title;
+
+  writeStats(stats);
+  return JSON.stringify({ xpEarned, ...stats });
+}
+
 // CLI execution guard — only runs when called directly, not when require()'d in tests
 if (require.main === module) {
   const [,, command, ...args] = process.argv;
@@ -117,10 +186,16 @@ if (require.main === module) {
     case 'queue-clear':
       clearQueue();
       break;
+    case 'record':
+      console.log(recordResult(args[0]));
+      break;
+    case 'stats':
+      console.log(JSON.stringify(readStats(), null, 2));
+      break;
     default:
       console.error(`Unknown command: ${command}`);
       process.exit(1);
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak, readStats, writeStats, recordResult };
