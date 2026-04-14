@@ -104,7 +104,12 @@ Where `<json>` is:
 }
 ```
 
-Parse the JSON output from store.js. Display:
+The store.js record command outputs JSON like:
+```json
+{"xpEarned":135,"xp":1385,"level":7,"levelTitle":"Apprentice","streak":5,"longestStreak":12,"totalQuizzes":34,"moduleStats":{...}}
+```
+
+Parse that output. Compare `level` in the output to your pre-quiz estimate of the old level to detect a level-up. Display:
 ```
 +{xpEarned} XP  ·  🔥 Streak: {streak} days  ·  Level {level} {levelTitle}
 ```
