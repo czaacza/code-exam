@@ -5,8 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Use a temp dir so tests never touch ~/.codeprobe
-const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'codeprobe-test-'));
+// Use a temp dir so tests never touch ~/.code-exam
+const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-exam-test-'));
 process.env.HOME = tmpHome;
 
 // Import after setting HOME so DIR resolves to tmpHome
@@ -16,9 +16,11 @@ process.on('exit', () => {
   try { fs.rmSync(tmpHome, { recursive: true, force: true }); } catch {}
 });
 
-test('ensureDir creates ~/.codeprobe directory', () => {
+// === Queue operations ===
+
+test('ensureDir creates ~/.code-exam directory', () => {
   store.ensureDir();
-  assert.ok(fs.existsSync(path.join(tmpHome, '.codeprobe')));
+  assert.ok(fs.existsSync(path.join(tmpHome, '.code-exam')));
 });
 
 test('readQueue returns empty array when file does not exist', () => {
@@ -46,115 +48,137 @@ test('addToQueue deduplicates entries', () => {
   assert.deepStrictEqual(store.readQueue(), ['src/foo.ts', 'src/bar.ts']);
 });
 
-test('calculateLevel: 0 XP = level 1 Newcomer', () => {
-  const result = store.calculateLevel(0);
-  assert.strictEqual(result.level, 1);
-  assert.strictEqual(result.title, 'Newcomer');
+// === Grade calculation ===
+
+test('calculateGrade: 100% = A, 4.0 GPA', () => {
+  const result = store.calculateGrade(1.0);
+  assert.strictEqual(result.grade, 'A');
+  assert.strictEqual(result.gpa, 4.0);
+  assert.strictEqual(result.pct, 100);
 });
 
-test('calculateLevel: 499 XP = level 4 Newcomer', () => {
-  const result = store.calculateLevel(499);
-  assert.strictEqual(result.level, 4);
-  assert.strictEqual(result.title, 'Newcomer');
+test('calculateGrade: 90% = A', () => {
+  const result = store.calculateGrade(0.9);
+  assert.strictEqual(result.grade, 'A');
+  assert.strictEqual(result.gpa, 4.0);
 });
 
-test('calculateLevel: 500 XP = level 5 Apprentice', () => {
-  const result = store.calculateLevel(500);
-  assert.strictEqual(result.level, 5);
-  assert.strictEqual(result.title, 'Apprentice');
+test('calculateGrade: 80% = B, 3.0 GPA', () => {
+  const result = store.calculateGrade(0.8);
+  assert.strictEqual(result.grade, 'B');
+  assert.strictEqual(result.gpa, 3.0);
 });
 
-test('calculateLevel: 2000 XP = level 10 Specialist', () => {
-  const result = store.calculateLevel(2000);
-  assert.strictEqual(result.level, 10);
-  assert.strictEqual(result.title, 'Specialist');
+test('calculateGrade: 70% = C, 2.0 GPA', () => {
+  const result = store.calculateGrade(0.7);
+  assert.strictEqual(result.grade, 'C');
+  assert.strictEqual(result.gpa, 2.0);
 });
 
-test('calculateLevel: 12000 XP = level 20 Architect', () => {
-  const result = store.calculateLevel(12000);
-  assert.strictEqual(result.level, 20);
-  assert.strictEqual(result.title, 'Architect');
+test('calculateGrade: 60% = D, 1.0 GPA', () => {
+  const result = store.calculateGrade(0.6);
+  assert.strictEqual(result.grade, 'D');
+  assert.strictEqual(result.gpa, 1.0);
 });
 
-test('calculateXP: 2 correct medium answers + perfect = 150 XP', () => {
-  const questions = [
-    { difficulty: 'medium', correct: true },
-    { difficulty: 'medium', correct: true },
-  ];
-  // 25 + 25 + 100 perfect bonus = 150
-  const xp = store.calculateXP(questions, 1.0, false, false);
-  assert.strictEqual(xp, 150);
+test('calculateGrade: 40% = F, 0.0 GPA', () => {
+  const result = store.calculateGrade(0.4);
+  assert.strictEqual(result.grade, 'F');
+  assert.strictEqual(result.gpa, 0.0);
 });
 
-test('calculateXP: new module adds 50 XP bonus', () => {
-  const questions = [{ difficulty: 'easy', correct: true }];
-  // 10 + 100 perfect + 50 new module = 160
-  const xp = store.calculateXP(questions, 1.0, true, false);
-  assert.strictEqual(xp, 160);
+// === Rank calculation ===
+
+test('calculateRank: 0 exams = Freshman', () => {
+  assert.strictEqual(store.calculateRank(0), 'Freshman');
 });
 
-test('calculateXP: streak day adds 20 XP', () => {
-  const questions = [{ difficulty: 'easy', correct: false }];
-  // 0 + 20 streak = 20
-  const xp = store.calculateXP(questions, 0.0, false, true);
-  assert.strictEqual(xp, 20);
+test('calculateRank: 11 exams = Sophomore', () => {
+  assert.strictEqual(store.calculateRank(11), 'Sophomore');
 });
 
-test('updateStreak: first quiz ever starts streak at 1', () => {
-  const stats = { streak: 0, longestStreak: 0, lastQuizDate: null };
+test('calculateRank: 26 exams = Junior', () => {
+  assert.strictEqual(store.calculateRank(26), 'Junior');
+});
+
+test('calculateRank: 51 exams = Senior', () => {
+  assert.strictEqual(store.calculateRank(51), 'Senior');
+});
+
+test('calculateRank: 101 exams = Graduate', () => {
+  assert.strictEqual(store.calculateRank(101), 'Graduate');
+});
+
+// === GPA calculation ===
+
+test('calculateGPA: empty grades = 0.0', () => {
+  assert.strictEqual(store.calculateGPA([]), 0.0);
+});
+
+test('calculateGPA: average of [4.0, 3.0] = 3.5', () => {
+  assert.strictEqual(store.calculateGPA([4.0, 3.0]), 3.5);
+});
+
+test('calculateGPA: average of [4.0, 4.0, 0.0] = 2.67', () => {
+  assert.strictEqual(store.calculateGPA([4.0, 4.0, 0.0]), 2.67);
+});
+
+// === Streak ===
+
+test('updateStreak: first exam ever starts streak at 1', () => {
+  const stats = { streak: 0, longestStreak: 0, lastExamDate: null };
   const result = store.updateStreak(stats, '2026-04-14');
   assert.strictEqual(result.streak, 1);
   assert.strictEqual(result.longestStreak, 1);
 });
 
-test('updateStreak: quiz on same day keeps streak unchanged', () => {
-  const stats = { streak: 3, longestStreak: 5, lastQuizDate: '2026-04-14' };
+test('updateStreak: exam on same day keeps streak unchanged', () => {
+  const stats = { streak: 3, longestStreak: 5, lastExamDate: '2026-04-14' };
   const result = store.updateStreak(stats, '2026-04-14');
   assert.strictEqual(result.streak, 3);
   assert.strictEqual(result.longestStreak, 5);
 });
 
-test('updateStreak: quiz on consecutive day increments streak', () => {
-  const stats = { streak: 3, longestStreak: 5, lastQuizDate: '2026-04-13' };
+test('updateStreak: exam on consecutive day increments streak', () => {
+  const stats = { streak: 3, longestStreak: 5, lastExamDate: '2026-04-13' };
   const result = store.updateStreak(stats, '2026-04-14');
   assert.strictEqual(result.streak, 4);
   assert.strictEqual(result.longestStreak, 5);
 });
 
 test('updateStreak: new streak beats longestStreak', () => {
-  const stats = { streak: 5, longestStreak: 5, lastQuizDate: '2026-04-13' };
+  const stats = { streak: 5, longestStreak: 5, lastExamDate: '2026-04-13' };
   const result = store.updateStreak(stats, '2026-04-14');
   assert.strictEqual(result.streak, 6);
   assert.strictEqual(result.longestStreak, 6);
 });
 
 test('updateStreak: gap of 2+ days resets streak to 1', () => {
-  const stats = { streak: 10, longestStreak: 10, lastQuizDate: '2026-04-10' };
+  const stats = { streak: 10, longestStreak: 10, lastExamDate: '2026-04-10' };
   const result = store.updateStreak(stats, '2026-04-14');
   assert.strictEqual(result.streak, 1);
   assert.strictEqual(result.longestStreak, 10);
 });
 
+// === Stats ===
+
 test('readStats: returns default stats when file does not exist', () => {
-  // Use a sub-directory to guarantee no stats.json exists
-  const freshHome = fs.mkdtempSync(path.join(os.tmpdir(), 'codeprobe-fresh-'));
-  const origDir = path.join(tmpHome, '.codeprobe', 'stats.json');
-  // Delete stats.json if it exists from previous tests
-  if (fs.existsSync(origDir)) fs.unlinkSync(origDir);
+  const statsFile = path.join(tmpHome, '.code-exam', 'stats.json');
+  if (fs.existsSync(statsFile)) fs.unlinkSync(statsFile);
 
   const stats = store.readStats();
-  assert.strictEqual(stats.xp, 0);
-  assert.strictEqual(stats.level, 1);
-  assert.strictEqual(stats.levelTitle, 'Newcomer');
+  assert.strictEqual(stats.gpa, 0.0);
+  assert.strictEqual(stats.rank, 'Freshman');
   assert.strictEqual(stats.streak, 0);
-  assert.strictEqual(stats.totalQuizzes, 0);
+  assert.strictEqual(stats.totalExams, 0);
   assert.deepStrictEqual(stats.moduleStats, {});
-  fs.rmSync(freshHome, { recursive: true, force: true });
+  assert.deepStrictEqual(stats.allGrades, []);
 });
 
-test('recordResult: appends to scores.jsonl and updates stats.json', () => {
-  // Clear any prior state
-  const cpDir = path.join(tmpHome, '.codeprobe');
+// === Record result ===
+
+test('recordResult: records exam with grade B for 80% score', () => {
+  const cpDir = path.join(tmpHome, '.code-exam');
   const statsFile = path.join(cpDir, 'stats.json');
   const scoresFile = path.join(cpDir, 'scores.jsonl');
   if (fs.existsSync(statsFile)) fs.unlinkSync(statsFile);
@@ -177,22 +201,22 @@ test('recordResult: appends to scores.jsonl and updates stats.json', () => {
   const output = store.recordResult(JSON.stringify(result));
   const parsed = JSON.parse(output);
 
-  assert.ok(parsed.xpEarned > 0, 'xpEarned should be positive');
-  assert.strictEqual(parsed.totalQuizzes, 1);
-  assert.ok(parsed.moduleStats['src/payments'], 'moduleStats should have src/payments');
-  assert.strictEqual(parsed.moduleStats['src/payments'].quizzes, 1);
-  assert.ok(parsed.moduleStats['src/payments'].lastQuizDate, 'moduleStats should have lastQuizDate');
+  assert.strictEqual(parsed.grade, 'B');
+  assert.strictEqual(parsed.gpa, 3.0);
+  assert.strictEqual(parsed.totalExams, 1);
+  assert.strictEqual(parsed.rank, 'Freshman');
+  assert.ok(parsed.moduleStats['src/payments']);
+  assert.strictEqual(parsed.moduleStats['src/payments'].exams, 1);
+  assert.ok(parsed.moduleStats['src/payments'].lastExamDate);
 
-  // Verify scores.jsonl has one line
+  // Verify scores.jsonl
   const lines = fs.readFileSync(scoresFile, 'utf8').trim().split('\n');
   assert.strictEqual(lines.length, 1);
   const scored = JSON.parse(lines[0]);
-  assert.strictEqual(scored.module, 'src/payments');
-  assert.ok(scored.id, 'should have an id');
-  assert.ok(scored.ts, 'should have a timestamp');
+  assert.strictEqual(scored.grade, 'B');
 });
 
-test('recordResult: second quiz on same module increments moduleStats', () => {
+test('recordResult: second exam updates GPA correctly', () => {
   const result = {
     module: 'src/payments',
     score: 1.0,
@@ -207,56 +231,60 @@ test('recordResult: second quiz on same module increments moduleStats', () => {
     ],
   };
 
-  store.recordResult(JSON.stringify(result));
-  const stats = store.readStats();
-  assert.strictEqual(stats.moduleStats['src/payments'].quizzes, 2);
-  assert.strictEqual(stats.totalQuizzes, 2);
+  const output = store.recordResult(JSON.stringify(result));
+  const parsed = JSON.parse(output);
+  assert.strictEqual(parsed.grade, 'A');
+  assert.strictEqual(parsed.totalExams, 2);
+  assert.strictEqual(parsed.gpa, 3.5); // (3.0 + 4.0) / 2
+  assert.strictEqual(parsed.moduleStats['src/payments'].exams, 2);
 });
 
-test('computeAchievements: First Blood earned after 1 quiz', () => {
+// === Achievements ===
+
+test('computeAchievements: Enrolled earned after 1 exam', () => {
   const scores = [{ score: 0.6, module: 'src/a', questions: [], durationSeconds: 100 }];
-  const stats = { longestStreak: 1, totalQuizzes: 1 };
+  const stats = { longestStreak: 1 };
   const result = store.computeAchievements(scores, stats);
-  assert.ok(result.earned.some(b => b.id === 'first-blood'));
+  assert.ok(result.earned.some(b => b.id === 'enrolled'));
 });
 
-test('computeAchievements: Perfect Run earned when score is 1.0', () => {
-  const scores = [{ score: 1.0, module: 'src/a', questions: [], durationSeconds: 100 }];
-  const stats = { longestStreak: 1, totalQuizzes: 1 };
+test('computeAchievements: Straight A earned when score >= 0.9', () => {
+  const scores = [{ score: 0.9, module: 'src/a', questions: [], durationSeconds: 100 }];
+  const stats = { longestStreak: 1 };
   const result = store.computeAchievements(scores, stats);
-  assert.ok(result.earned.some(b => b.id === 'perfect-run'));
+  assert.ok(result.earned.some(b => b.id === 'straight-a'));
 });
 
-test('computeAchievements: Module Master earned after 3 quizzes >= 0.8 on same module', () => {
+test('computeAchievements: Honors Student earned after 3 A grades on same module', () => {
   const scores = [
-    { score: 0.8, module: 'src/auth', questions: [], durationSeconds: 100 },
     { score: 0.9, module: 'src/auth', questions: [], durationSeconds: 100 },
+    { score: 0.95, module: 'src/auth', questions: [], durationSeconds: 100 },
     { score: 1.0, module: 'src/auth', questions: [], durationSeconds: 100 },
   ];
-  const stats = { longestStreak: 1, totalQuizzes: 3 };
+  const stats = { longestStreak: 1 };
   const result = store.computeAchievements(scores, stats);
-  assert.ok(result.earned.some(b => b.id === 'module-master'));
+  assert.ok(result.earned.some(b => b.id === 'honors'));
 });
 
-test('computeAchievements: Explorer earned after quizzing on 5 different modules', () => {
+test('computeAchievements: Explorer earned after exams on 5 different modules', () => {
   const scores = ['src/a','src/b','src/c','src/d','src/e'].map(m => ({
     score: 0.5, module: m, questions: [], durationSeconds: 100
   }));
-  const stats = { longestStreak: 1, totalQuizzes: 5 };
+  const stats = { longestStreak: 1 };
   const result = store.computeAchievements(scores, stats);
   assert.ok(result.earned.some(b => b.id === 'explorer'));
 });
 
 test('computeAchievements: Speed Demon earned with perfect score under 60s', () => {
   const scores = [{ score: 1.0, module: 'src/a', questions: [], durationSeconds: 55 }];
-  const stats = { longestStreak: 1, totalQuizzes: 1 };
+  const stats = { longestStreak: 1 };
   const result = store.computeAchievements(scores, stats);
   assert.ok(result.earned.some(b => b.id === 'speed-demon'));
 });
 
 test('computeAchievements: unearned badges appear in locked list', () => {
   const scores = [];
-  const stats = { longestStreak: 0, totalQuizzes: 0 };
+  const stats = { longestStreak: 0 };
   const result = store.computeAchievements(scores, stats);
   assert.strictEqual(result.earned.length, 0);
   assert.ok(result.locked.length > 0);

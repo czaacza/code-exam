@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const dir = path.join(os.homedir(), '.codeprobe');
+const dir = path.join(os.homedir(), '.code-exam');
 const queueFile = path.join(dir, 'queue.json');
 
 function getQueue() {
@@ -22,7 +22,7 @@ if (queue.length > 0) {
   const count = queue.length;
   const fileWord = count === 1 ? 'file' : 'files';
   process.stdout.write(
-    `\n📚 CodeProbe: Claude edited ${count} ${fileWord} last session. Run /quiz to test your understanding.\n\n`
+    `\n📚 Code Exam: Claude edited ${count} ${fileWord} last session. Run /exam to test your understanding.\n\n`
   );
 }
 

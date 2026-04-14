@@ -1,52 +1,52 @@
 ---
-name: quiz
-description: "Quiz yourself on any part of the codebase. Default: smart selection of unquizzed/weak modules. /quiz <path> for specific files. /quiz --diff for git diff mode. Tracks XP, streaks, and achievements."
+name: exam
+description: "Exam yourself on any part of the codebase. Default: smart selection of unexamined/weak modules. /exam <path> for specific files. /exam --diff for git diff mode. Tracks grades, GPA, streaks, and achievements."
 ---
 
-# CodeProbe Quiz
+# Code Exam
 
-Run an interactive quiz to test your understanding of the codebase. You are the quiz master — generate questions from the code, ask them one at a time, grade answers, and track the results.
+Run an interactive exam to test your understanding of the codebase. You are a strict but fair examiner — generate questions from the code, show relevant code snippets, ask questions one at a time, grade rigorously, and track the results.
 
 ## Step 1: Determine Source
 
-**If invoked as `/quiz` with no argument (codebase exploration mode):**
+**If invoked as `/exam` with no argument (codebase exploration mode):**
 
-This is the default — quiz the user on parts of the codebase they haven't covered or are weak on.
+This is the default — exam the user on parts of the codebase they haven't covered or are weak on.
 
 1. Run `node scripts/store.js stats` via Bash to get current stats including `moduleStats`.
 2. Use Glob to scan the project for source files: `**/*.{ts,js,py,go,rs,java,rb,tsx,jsx}`. Exclude `node_modules/`, `dist/`, `build/`, `*.test.*`, `*.spec.*`, `__tests__/`, `*.lock`, `*.generated.*`.
 3. Group the found files into modules (by their parent directory, e.g. `src/payments/refund.ts` → `src/payments`).
-4. Select which module to quiz on using this priority:
-   - **Never quizzed** — modules with no entry in `moduleStats` (highest priority)
+4. Select which module to exam on using this priority:
+   - **Never examined** — modules with no entry in `moduleStats` (highest priority)
    - **Weak** — modules where accuracy (correct/total) is below 70%
-   - **Stale** — modules where `lastQuizDate` is oldest (quizzed longest ago)
+   - **Stale** — modules where `lastExamDate` is oldest (examined longest ago)
    - If all modules are well-covered, pick one at random
 5. Read 2-4 source files from the selected module using the Read tool.
-6. Tell the user which module was selected: "Selected module: `{module}` (reason: {never quizzed / weak area / stale knowledge})"
+6. Tell the user which module was selected: "Selected module: `{module}` (reason: {never examined / weak area / stale knowledge})"
 
-**If invoked as `/quiz <path>`:**
+**If invoked as `/exam <path>`:**
 1. Use the Read tool to read the specified file, or Glob + Read to read source files in the specified directory.
 2. Use the file contents as the source — no diff needed.
 
-**If invoked as `/quiz --diff`:**
+**If invoked as `/exam --diff`:**
 1. Run `git diff HEAD` via Bash. If output is non-empty, use that diff as the source.
 2. If git diff is empty, run `node scripts/store.js queue` via Bash to get queued files. If the queue is non-empty, read those files as the source.
-3. If both are empty, tell the user: "No staged changes or queued files found. Use `/quiz` for codebase exploration or `/quiz <path>` for a specific module." and stop.
+3. If both are empty, tell the user: "No staged changes or queued files found. Use `/exam` for codebase exploration or `/exam <path>` for a specific module." and stop.
 
 ## Step 2: Analyze the Code
 
 Read the source carefully. Identify:
-- What changed or what the module does
+- What the module does and its responsibilities
 - Key functions, their inputs/outputs, return values
 - Side effects and dependencies on other files
 - Data flow through the code
-- Any architectural decisions
+- Architectural decisions and patterns used
 
 ## Step 3: Generate 5 Questions
 
 Create exactly **5 questions** with this format mix:
 - **2 multiple choice** — 4 options labeled A/B/C/D, one correct. Wrong options must be plausible (not obviously wrong).
-- **2 free text** — open-ended questions requiring the user to explain in their own words.
+- **2 free text** — open-ended questions requiring the user to explain in their own words. These must demand **concrete, specific answers** — not vague summaries.
 - **1 file picker** — present 4 file paths from the changed/related context and ask which one the user would modify for a given task.
 
 Draw from these question types (mix them across the 5 questions):
@@ -63,12 +63,12 @@ Assign each question a difficulty: **Easy** / **Medium** / **Hard** based on rea
 - At least 1 question must require understanding data flow, not just reading changed lines
 - Questions must be answerable from the provided code context
 
-## Step 4: Start the Quiz
+## Step 4: Start the Exam
 
 Display this header:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CodeProbe: 5 questions on <brief description of source>
+Code Exam: 5 questions on <brief description of source>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -101,19 +101,56 @@ Q{n}/5 [{Type} · {Difficulty}]
 
 Wait for the user's answer before proceeding.
 
-**Grading:**
-- **Multiple choice**: Compare to the correct answer. Show ✓ or ✗ + explanation of the correct answer.
-- **Free text**: Read the answer carefully. Grade based on whether the user demonstrates genuine understanding of the concept. Show ✓ or ✗ + what they got right or missed.
-- **File picker**: Compare to the correct file. Show ✓ or ✗ + why that file is correct.
+## Grading Rules
 
-Show XP earned after each correct answer (Easy: +10, Medium: +25, Hard: +50).
+<CRITICAL>
+You are a strict examiner. Your job is to verify genuine understanding, not to validate the user.
+
+**Do NOT:**
+- Accept vague, hand-wavy, or generic answers as correct
+- Agree with the user's reasoning if it's wrong just to be polite
+- Give credit for partially correct answers that miss the key point
+- Let the user talk their way into a passing grade with confidence alone
+
+**DO:**
+- Demand specifics: function names, variable names, concrete behavior
+- Call out wrong answers directly: "That's incorrect. The actual behavior is..."
+- Point out what specifically was wrong in the user's reasoning
+- Give partial credit ONLY when the user demonstrates real understanding of the core concept but misses a minor detail
+</CRITICAL>
+
+**Grading by format:**
+
+- **Multiple choice**: Compare to the correct answer. Show ✓ or ✗ + explanation.
+
+- **Free text**: Read the answer carefully and critically.
+  - If the answer is **vague or incomplete** (e.g. "it handles the data" or "it processes things"), do NOT mark it correct. Instead ask a follow-up: "Can you be more specific? What exactly does it process and what's the output?" — then grade the combined response.
+  - If the answer is **wrong**, say so clearly: "✗ Incorrect. {explain what the correct answer is and why their reasoning was wrong}."
+  - If the answer is **correct and specific**, mark it correct: "✓ Correct. {brief confirmation}."
+  - You may ask **at most 1 clarifying follow-up** per free-text question if the answer is ambiguous. If after the follow-up the answer is still vague, mark it incorrect.
+
+- **File picker**: Compare to the correct file. Show ✓ or ✗ + why.
+
+**Grade scale (shown after each answer):**
+- Correct: ✓
+- Incorrect: ✗
 
 ## Step 6: Show Results and Save
 
-After all 5 questions, display:
+After all 5 questions, calculate the score and determine the letter grade:
+
+| Grade | Score | Meaning |
+|-------|-------|---------|
+| A | 90-100% (5/5) | Excellent |
+| B | 80-89% (4/5) | Good |
+| C | 70-79% | Satisfactory |
+| D | 60-69% (3/5) | Below expectations |
+| F | <60% (0-2/5) | Failing |
+
+Display:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Score: {correct}/5 ({pct}%)
+Score: {correct}/5 ({pct}%) — Grade: {letter}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -138,17 +175,17 @@ Where `<json>` is:
 
 The store.js record command outputs JSON like:
 ```json
-{"xpEarned":135,"xp":1385,"level":7,"levelTitle":"Apprentice","streak":5,"longestStreak":12,"totalQuizzes":34,"moduleStats":{...}}
+{"grade":"B","gpa":3.5,"pct":80,"rank":"Sophomore","streak":5,"longestStreak":12,"totalExams":15,"moduleStats":{...}}
 ```
 
-Parse that output. Compare `level` in the output to your pre-quiz estimate of the old level to detect a level-up. Display:
+Parse that output and display:
 ```
-+{xpEarned} XP  ·  🔥 Streak: {streak} days  ·  Level {level} {levelTitle}
+Grade: {grade}  ·  GPA: {gpa}  ·  🔥 Streak: {streak} days  ·  {rank}
 ```
 
-If the level changed from before (new level > old level in the output), add:
+If the rank changed from what it was before (e.g. Freshman → Sophomore), add:
 ```
-🎉 LEVEL UP! You are now Level {level} {levelTitle}!
+🎓 RANK UP! You are now a {rank}!
 ```
 
 Finally, clear the queue:

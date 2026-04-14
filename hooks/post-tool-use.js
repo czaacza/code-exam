@@ -30,7 +30,7 @@ function isTracked(filePath) {
 }
 
 function addToQueue(filePath) {
-  const dir = path.join(os.homedir(), '.codeprobe');
+  const dir = path.join(os.homedir(), '.code-exam');
   const queueFile = path.join(dir, 'queue.json');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -43,7 +43,7 @@ function addToQueue(filePath) {
     try {
       fs.writeFileSync(queueFile, JSON.stringify(queue));
     } catch (err) {
-      process.stderr.write(`[CodeProbe] Warning: could not write queue: ${err.message}\n`);
+      process.stderr.write(`[Code Exam] Warning: could not write queue: ${err.message}\n`);
     }
   }
 }

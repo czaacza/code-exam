@@ -1,7 +1,7 @@
 {
-  "name": "codeprobe",
-  "version": "0.1.0",
-  "description": "Gamified code quiz plugin for Claude Code",
+  "name": "code-exam",
+  "version": "0.2.0",
+  "description": "Graded code exams plugin for Claude Code — test your codebase knowledge",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -10,9 +10,9 @@
   },
   "claude": {
     "skills": [
-      "skills/quiz/skill.md",
-      "skills/quiz-status/skill.md",
-      "skills/quiz-achievements/skill.md"
+      "skills/exam/skill.md",
+      "skills/exam-status/skill.md",
+      "skills/exam-achievements/skill.md"
     ],
     "hooks": {
       "PostToolUse": "hooks/post-tool-use.js",

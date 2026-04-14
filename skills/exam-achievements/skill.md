@@ -1,9 +1,9 @@
 ---
-name: quiz-achievements
-description: "Show your CodeProbe achievement badges — earned and locked. Run /quiz-achievements to see your progress."
+name: exam-achievements
+description: "Show your Code Exam achievement badges — earned and locked. Run /exam-achievements to see your progress."
 ---
 
-# CodeProbe Achievements
+# Code Exam — Achievements
 
 Display earned and locked achievement badges.
 
@@ -17,15 +17,15 @@ node scripts/store.js achievements
 2. Parse the JSON output. It has this shape:
 ```json
 {
-  "earned": [{"id":"first-blood","name":"First Blood","description":"Complete your first quiz"}],
-  "locked": [{"id":"perfect-run","name":"Perfect Run","description":"Score 100% on any quiz"}]
+  "earned": [{"id":"enrolled","name":"Enrolled","description":"Complete your first exam"}],
+  "locked": [{"id":"straight-a","name":"Straight A","description":"Score an A (90%+) on any exam"}]
 }
 ```
 
 3. Display in this format:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CodeProbe Achievements  ({earned count} / {total count})
+Code Exam — Achievements  ({earned count} / {total count})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ✅ Earned
@@ -39,12 +39,12 @@ CodeProbe Achievements  ({earned count} / {total count})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-If no badges earned yet, show "No badges yet — run /quiz to earn your first!"
+If no badges earned yet, show "No badges yet — run /exam to earn your first!"
 
 Use these emoji per badge id:
-- first-blood: 🩸
-- perfect-run: 🎯
-- module-master: 🏅
+- enrolled: 🎓
+- straight-a: 🅰️
+- honors: 🏅
 - streak-week: 🔥
 - deep-diver: 🤿
 - explorer: 🗺️

@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-const DIR = path.join(os.homedir(), '.codeprobe');
+const DIR = path.join(os.homedir(), '.code-exam');
 const SCORES_FILE = path.join(DIR, 'scores.jsonl');
 const STATS_FILE = path.join(DIR, 'stats.json');
 const QUEUE_FILE = path.join(DIR, 'queue.json');
@@ -23,7 +23,7 @@ function readQueue() {
     return JSON.parse(fs.readFileSync(QUEUE_FILE, 'utf8'));
   } catch (err) {
     if (err instanceof SyntaxError) {
-      process.stderr.write('[CodeProbe] Warning: queue.json is corrupted, resetting to empty.\n');
+      process.stderr.write('[Code Exam] Warning: queue.json is corrupted, resetting to empty.\n');
       return [];
     }
     throw err;
@@ -35,7 +35,7 @@ function writeQueue(queue) {
   try {
     fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue));
   } catch (err) {
-    process.stderr.write(`[CodeProbe] Warning: could not write queue: ${err.message}\n`);
+    process.stderr.write(`[Code Exam] Warning: could not write queue: ${err.message}\n`);
   }
 }
 
@@ -51,49 +51,48 @@ function addToQueue(filePath) {
   }
 }
 
-const TIERS = [
-  { title: 'Newcomer',   minXp: 0,     maxXp: 500,      startLevel: 1,  levels: 4 },
-  { title: 'Apprentice', minXp: 500,   maxXp: 2000,     startLevel: 5,  levels: 5 },
-  { title: 'Specialist', minXp: 2000,  maxXp: 5000,     startLevel: 10, levels: 5 },
-  { title: 'Expert',     minXp: 5000,  maxXp: 12000,    startLevel: 15, levels: 5 },
-  { title: 'Architect',  minXp: 12000, maxXp: Infinity, startLevel: 20, levels: null },
+const GRADE_THRESHOLDS = [
+  { grade: 'A', minPct: 90, gpa: 4.0 },
+  { grade: 'B', minPct: 80, gpa: 3.0 },
+  { grade: 'C', minPct: 70, gpa: 2.0 },
+  { grade: 'D', minPct: 60, gpa: 1.0 },
+  { grade: 'F', minPct: 0,  gpa: 0.0 },
 ];
 
-function calculateLevel(xp) {
-  for (let i = TIERS.length - 1; i >= 0; i--) {
-    const tier = TIERS[i];
-    if (xp >= tier.minXp) {
-      if (tier.levels === null) {
-        const level = tier.startLevel + Math.floor((xp - tier.minXp) / 2000);
-        return { level, title: tier.title };
-      }
-      const range = tier.maxXp - tier.minXp;
-      const xpInTier = xp - tier.minXp;
-      const levelInTier = Math.min(tier.levels - 1, Math.floor(xpInTier / (range / tier.levels)));
-      return { level: tier.startLevel + levelInTier, title: tier.title };
-    }
+const RANKS = [
+  { title: 'Freshman',   minExams: 0 },
+  { title: 'Sophomore',  minExams: 11 },
+  { title: 'Junior',     minExams: 26 },
+  { title: 'Senior',     minExams: 51 },
+  { title: 'Graduate',   minExams: 101 },
+];
+
+function calculateGrade(score) {
+  const pct = Math.round(score * 100);
+  for (const t of GRADE_THRESHOLDS) {
+    if (pct >= t.minPct) return { grade: t.grade, gpa: t.gpa, pct };
   }
-  return { level: 1, title: 'Newcomer' };
+  return { grade: 'F', gpa: 0.0, pct };
 }
 
-const XP_PER_DIFFICULTY = { easy: 10, medium: 25, hard: 50 };
-
-function calculateXP(questions, score, isNewModule, isStreakDay) {
-  let xp = 0;
-  for (const q of questions) {
-    if (q.correct) xp += (XP_PER_DIFFICULTY[q.difficulty] || 25);
+function calculateRank(totalExams) {
+  for (let i = RANKS.length - 1; i >= 0; i--) {
+    if (totalExams >= RANKS[i].minExams) return RANKS[i].title;
   }
-  if (score === 1.0) xp += 100;
-  if (isNewModule) xp += 50;
-  if (isStreakDay) xp += 20;
-  return xp;
+  return 'Freshman';
+}
+
+function calculateGPA(allGrades) {
+  if (allGrades.length === 0) return 0.0;
+  const sum = allGrades.reduce((acc, g) => acc + g, 0);
+  return Math.round((sum / allGrades.length) * 100) / 100;
 }
 
 function updateStreak(stats, todayStr) {
-  if (!stats.lastQuizDate) {
+  if (!stats.lastExamDate) {
     return { streak: 1, longestStreak: Math.max(1, stats.longestStreak) };
   }
-  const last = new Date(stats.lastQuizDate);
+  const last = new Date(stats.lastExamDate);
   const today = new Date(todayStr);
   const diffMs = today.getTime() - last.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -112,13 +111,13 @@ function readStats() {
   ensureDir();
   if (!fs.existsSync(STATS_FILE)) {
     return {
-      xp: 0,
-      level: 1,
-      levelTitle: 'Newcomer',
+      gpa: 0.0,
+      rank: 'Freshman',
       streak: 0,
       longestStreak: 0,
-      lastQuizDate: null,
-      totalQuizzes: 0,
+      lastExamDate: null,
+      totalExams: 0,
+      allGrades: [],
       moduleStats: {},
     };
   }
@@ -137,81 +136,75 @@ function recordResult(resultJson) {
   if (!result.id) result.id = crypto.randomUUID();
   if (!result.ts) result.ts = new Date().toISOString();
 
+  const { grade, gpa, pct } = calculateGrade(result.score);
+  result.grade = grade;
+  result.gpa = gpa;
+
   // Append to scores.jsonl
   fs.appendFileSync(SCORES_FILE, JSON.stringify(result) + '\n');
 
   const stats = readStats();
   const today = new Date().toISOString().split('T')[0];
 
-  const isNewModule = !stats.moduleStats[result.module];
   const streakUpdate = updateStreak(stats, today);
-  const isNewStreakDay = stats.lastQuizDate !== today;
-
-  const xpEarned = calculateXP(
-    result.questions || [],
-    result.score,
-    isNewModule,
-    isNewStreakDay
-  );
 
   if (!stats.moduleStats[result.module]) {
-    stats.moduleStats[result.module] = { quizzes: 0, correct: 0, total: 0, lastQuizDate: null };
+    stats.moduleStats[result.module] = { exams: 0, correct: 0, total: 0, lastExamDate: null, grades: [] };
   }
   const mod = stats.moduleStats[result.module];
-  mod.quizzes++;
+  mod.exams++;
   mod.correct += result.correct || 0;
   mod.total += (result.questions || []).length || 5;
-  mod.lastQuizDate = today;
+  mod.lastExamDate = today;
+  mod.grades.push(gpa);
 
-  stats.xp += xpEarned;
-  stats.totalQuizzes++;
+  stats.allGrades.push(gpa);
+  stats.gpa = calculateGPA(stats.allGrades);
+  stats.totalExams++;
   stats.streak = streakUpdate.streak;
   stats.longestStreak = streakUpdate.longestStreak;
-  stats.lastQuizDate = today;
-
-  const { level, title } = calculateLevel(stats.xp);
-  stats.level = level;
-  stats.levelTitle = title;
+  stats.lastExamDate = today;
+  stats.rank = calculateRank(stats.totalExams);
 
   writeStats(stats);
-  return JSON.stringify({ xpEarned, ...stats });
+  return JSON.stringify({ grade, gpa, pct, ...stats });
 }
 
 const BADGES = [
   {
-    id: 'first-blood',
-    name: 'First Blood',
-    description: 'Complete your first quiz',
+    id: 'enrolled',
+    name: 'Enrolled',
+    description: 'Complete your first exam',
     check: (scores) => scores.length >= 1,
   },
   {
-    id: 'perfect-run',
-    name: 'Perfect Run',
-    description: 'Score 100% on any quiz',
-    check: (scores) => scores.some(s => s.score === 1.0),
+    id: 'straight-a',
+    name: 'Straight A',
+    description: 'Score an A (90%+) on any exam',
+    check: (scores) => scores.some(s => s.score >= 0.9),
   },
   {
-    id: 'module-master',
-    name: 'Module Master',
-    description: 'Score ≥ 80% on the same module 3 times',
+    id: 'honors',
+    name: 'Honors Student',
+    description: 'Score A on the same module 3 times',
     check: (scores) => {
       const byModule = {};
       for (const s of scores) {
-        if (s.score >= 0.8) byModule[s.module] = (byModule[s.module] || 0) + 1;
+        if (s.score >= 0.9) byModule[s.module] = (byModule[s.module] || 0) + 1;
       }
       return Object.values(byModule).some(count => count >= 3);
     },
   },
   {
     id: 'streak-week',
-    name: 'Streak Week',
-    description: '7-day quiz streak',
+    name: 'Study Streak',
+    description: '7-day exam streak',
     check: (scores, stats) => stats.longestStreak >= 7,
   },
   {
     id: 'deep-diver',
     name: 'Deep Diver',
-    description: 'Score 100% on a quiz that included a hard question',
+    description: 'Score 100% on an exam with a hard question',
     check: (scores) => scores.some(s =>
       s.score === 1.0 && (s.questions || []).some(q => q.difficulty === 'hard')
     ),
@@ -219,19 +212,19 @@ const BADGES = [
   {
     id: 'explorer',
     name: 'Explorer',
-    description: 'Quiz on 5 different modules',
+    description: 'Take exams on 5 different modules',
     check: (scores) => new Set(scores.map(s => s.module)).size >= 5,
   },
   {
     id: 'speed-demon',
     name: 'Speed Demon',
-    description: 'Perfect score in under 60 seconds',
+    description: 'Score 100% in under 60 seconds',
     check: (scores) => scores.some(s => s.score === 1.0 && s.durationSeconds < 60),
   },
   {
     id: 'centurion',
     name: 'Centurion',
-    description: 'Complete 100 quizzes',
+    description: 'Complete 100 exams',
     check: (scores) => scores.length >= 100,
   },
 ];
@@ -287,4 +280,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateGrade, calculateRank, calculateGPA, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };
