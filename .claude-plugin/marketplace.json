@@ -1,0 +1,13 @@
+{
+  "name": "code-exam",
+  "owner": {
+    "name": "czaacza"
+  },
+  "plugins": [
+    {
+      "name": "code-exam",
+      "source": ".",
+      "description": "Graded code exams for Claude Code — test your codebase knowledge with A-F grades, GPA tracking, and auto-exam after coding tasks"
+    }
+  ]
+}
