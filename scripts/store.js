@@ -88,6 +88,25 @@ function calculateXP(questions, score, isNewModule, isStreakDay) {
   return xp;
 }
 
+function updateStreak(stats, todayStr) {
+  if (!stats.lastQuizDate) {
+    return { streak: 1, longestStreak: Math.max(1, stats.longestStreak) };
+  }
+  const last = new Date(stats.lastQuizDate);
+  const today = new Date(todayStr);
+  const diffMs = today.getTime() - last.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return { streak: stats.streak, longestStreak: stats.longestStreak };
+  } else if (diffDays === 1) {
+    const newStreak = stats.streak + 1;
+    return { streak: newStreak, longestStreak: Math.max(newStreak, stats.longestStreak) };
+  } else {
+    return { streak: 1, longestStreak: stats.longestStreak };
+  }
+}
+
 // CLI execution guard — only runs when called directly, not when require()'d in tests
 if (require.main === module) {
   const [,, command, ...args] = process.argv;
@@ -104,4 +123,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateLevel, calculateXP, updateStreak };

@@ -99,3 +99,38 @@ test('calculateXP: streak day adds 20 XP', () => {
   const xp = store.calculateXP(questions, 0.0, false, true);
   assert.strictEqual(xp, 20);
 });
+
+test('updateStreak: first quiz ever starts streak at 1', () => {
+  const stats = { streak: 0, longestStreak: 0, lastQuizDate: null };
+  const result = store.updateStreak(stats, '2026-04-14');
+  assert.strictEqual(result.streak, 1);
+  assert.strictEqual(result.longestStreak, 1);
+});
+
+test('updateStreak: quiz on same day keeps streak unchanged', () => {
+  const stats = { streak: 3, longestStreak: 5, lastQuizDate: '2026-04-14' };
+  const result = store.updateStreak(stats, '2026-04-14');
+  assert.strictEqual(result.streak, 3);
+  assert.strictEqual(result.longestStreak, 5);
+});
+
+test('updateStreak: quiz on consecutive day increments streak', () => {
+  const stats = { streak: 3, longestStreak: 5, lastQuizDate: '2026-04-13' };
+  const result = store.updateStreak(stats, '2026-04-14');
+  assert.strictEqual(result.streak, 4);
+  assert.strictEqual(result.longestStreak, 5);
+});
+
+test('updateStreak: new streak beats longestStreak', () => {
+  const stats = { streak: 5, longestStreak: 5, lastQuizDate: '2026-04-13' };
+  const result = store.updateStreak(stats, '2026-04-14');
+  assert.strictEqual(result.streak, 6);
+  assert.strictEqual(result.longestStreak, 6);
+});
+
+test('updateStreak: gap of 2+ days resets streak to 1', () => {
+  const stats = { streak: 10, longestStreak: 10, lastQuizDate: '2026-04-10' };
+  const result = store.updateStreak(stats, '2026-04-14');
+  assert.strictEqual(result.streak, 1);
+  assert.strictEqual(result.longestStreak, 10);
+});
