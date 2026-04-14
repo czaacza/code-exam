@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const crypto = require('crypto');
 
 const DIR = path.join(os.homedir(), '.codeprobe');
 const SCORES_FILE = path.join(DIR, 'scores.jsonl');
@@ -21,14 +20,22 @@ function readQueue() {
   if (!fs.existsSync(QUEUE_FILE)) return [];
   try {
     return JSON.parse(fs.readFileSync(QUEUE_FILE, 'utf8'));
-  } catch {
-    return [];
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      process.stderr.write('[CodeProbe] Warning: queue.json is corrupted, resetting to empty.\n');
+      return [];
+    }
+    throw err;
   }
 }
 
 function writeQueue(queue) {
   ensureDir();
-  fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue));
+  try {
+    fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue));
+  } catch (err) {
+    process.stderr.write(`[CodeProbe] Warning: could not write queue: ${err.message}\n`);
+  }
 }
 
 function clearQueue() {

@@ -12,6 +12,10 @@ process.env.HOME = tmpHome;
 // Import after setting HOME so DIR resolves to tmpHome
 const store = require('../scripts/store.js');
 
+process.on('exit', () => {
+  try { fs.rmSync(tmpHome, { recursive: true, force: true }); } catch {}
+});
+
 test('ensureDir creates ~/.codeprobe directory', () => {
   store.ensureDir();
   assert.ok(fs.existsSync(path.join(tmpHome, '.codeprobe')));
