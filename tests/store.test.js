@@ -295,3 +295,30 @@ test('computeAchievements: unearned badges appear in locked list', () => {
   assert.strictEqual(result.earned.length, 0);
   assert.ok(result.locked.length > 0);
 });
+
+// === Config ===
+
+test('readConfig: returns defaults when no config file exists', () => {
+  const config = store.readConfig();
+  assert.strictEqual(config.questionCount, 3);
+  assert.strictEqual(config.difficulty, 'auto');
+  assert.strictEqual(config.autoExam, true);
+  assert.deepStrictEqual(config.questionTypes, ['multiple_choice', 'free_text', 'file_picker']);
+});
+
+test('writeConfig and readConfig round-trip', () => {
+  store.writeConfig({ questionCount: 5, difficulty: 'hard', autoExam: false, questionTypes: ['multiple_choice'] });
+  const config = store.readConfig();
+  assert.strictEqual(config.questionCount, 5);
+  assert.strictEqual(config.difficulty, 'hard');
+  assert.strictEqual(config.autoExam, false);
+  assert.deepStrictEqual(config.questionTypes, ['multiple_choice']);
+});
+
+test('readConfig: merges with defaults for missing keys', () => {
+  store.writeConfig({ questionCount: 7 });
+  const config = store.readConfig();
+  assert.strictEqual(config.questionCount, 7);
+  assert.strictEqual(config.difficulty, 'auto'); // from defaults
+  assert.strictEqual(config.autoExam, true); // from defaults
+});

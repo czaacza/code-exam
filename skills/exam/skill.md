@@ -7,6 +7,19 @@ description: "Exam yourself on any part of the codebase. Default: smart selectio
 
 Run an interactive exam to test your understanding of the codebase. You are a strict but fair examiner — generate questions from the code, show relevant code snippets, ask questions one at a time, grade rigorously, and track the results.
 
+## Step 0: Read Configuration
+
+Run via Bash:
+```
+node scripts/store.js config
+```
+
+This returns the exam configuration. Use these settings throughout the exam:
+- `questionCount` — how many questions to generate (default: 3)
+- `difficulty` — "auto", "easy", "medium", or "hard"
+- `questionTypes` — which formats to use (multiple_choice, free_text, file_picker)
+- `autoExam` — whether to offer exams after coding (handled by CLAUDE.md, not this skill)
+
 ## Step 1: Determine Source
 
 **If invoked as `/exam` with no argument (codebase exploration mode):**
@@ -42,12 +55,19 @@ Read the source carefully. Identify:
 - Data flow through the code
 - Architectural decisions and patterns used
 
-## Step 3: Generate 5 Questions
+## Step 3: Generate Questions
 
-Create exactly **5 questions** with this format mix:
-- **2 multiple choice** — 4 options labeled A/B/C/D, one correct. Wrong options must be plausible (not obviously wrong).
-- **2 free text** — open-ended questions requiring the user to explain in their own words. These must demand **concrete, specific answers** — not vague summaries.
-- **1 file picker** — present 4 file paths from the changed/related context and ask which one the user would modify for a given task.
+Generate exactly **{questionCount}** questions (from config, default 3).
+
+Distribute the question formats across the enabled `questionTypes` from config. If all three types are enabled, use a balanced mix. If only some types are enabled, use only those. Examples:
+- 3 questions, all types enabled: 1 multiple choice, 1 free text, 1 file picker
+- 3 questions, only multiple_choice: 3 multiple choice
+- 5 questions, all types enabled: 2 multiple choice, 2 free text, 1 file picker
+
+**Format descriptions:**
+- **multiple_choice** — 4 options labeled A/B/C/D, one correct. Wrong options must be plausible (not obviously wrong).
+- **free_text** — open-ended questions requiring the user to explain in their own words. These must demand **concrete, specific answers** — not vague summaries.
+- **file_picker** — present 4 file paths from the changed/related context and ask which one the user would modify for a given task.
 
 Draw from these question types (mix them across the 5 questions):
 - **Logic** — what does this function return or do in a specific scenario?
@@ -56,7 +76,11 @@ Draw from these question types (mix them across the 5 questions):
 - **Architecture** — why is it designed this way?
 - **Debug** — what's missing or could go wrong?
 
-Assign each question a difficulty: **Easy** / **Medium** / **Hard** based on reasoning required.
+Assign each question a difficulty based on the `difficulty` config:
+- **auto** (default): mix of Easy/Medium/Hard based on module complexity and code being examined
+- **easy**: all questions are surface-level reading comprehension
+- **medium**: all questions require understanding dependencies and side effects
+- **hard**: all questions require deep architectural understanding
 
 **Requirements:**
 - At least 1 question must be about side effects or impact on other files
@@ -68,7 +92,7 @@ Assign each question a difficulty: **Easy** / **Medium** / **Hard** based on rea
 Display this header:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Code Exam: 5 questions on <brief description of source>
+Code Exam: {questionCount} questions on <brief description of source>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -77,7 +101,7 @@ Code Exam: 5 questions on <brief description of source>
 For each question, display a **code snippet** followed by the question. The snippet gives the user context to reason about the answer.
 
 ```
-Q{n}/5 [{Type} · {Difficulty}]
+Q{n}/{questionCount} [{Type} · {Difficulty}]
 
 📄 {file_path}:{start_line}-{end_line}
 ┌─────────────────────────────────────
@@ -137,20 +161,20 @@ You are a strict examiner. Your job is to verify genuine understanding, not to v
 
 ## Step 6: Show Results and Save
 
-After all 5 questions, calculate the score and determine the letter grade:
+After all questions, calculate the score and determine the letter grade:
 
 | Grade | Score | Meaning |
 |-------|-------|---------|
-| A | 90-100% (5/5) | Excellent |
-| B | 80-89% (4/5) | Good |
+| A | 90-100% | Excellent |
+| B | 80-89% | Good |
 | C | 70-79% | Satisfactory |
-| D | 60-69% (3/5) | Below expectations |
-| F | <60% (0-2/5) | Failing |
+| D | 60-69% | Below expectations |
+| F | <60% | Failing |
 
 Display:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Score: {correct}/5 ({pct}%) — Grade: {letter}
+Score: {correct}/{questionCount} ({pct}%) — Grade: {letter}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -163,7 +187,7 @@ Where `<json>` is:
 ```json
 {
   "module": "<module path, e.g. src/payments>",
-  "score": <correct/5 as decimal>,
+  "score": <correct/questionCount as decimal>,
   "correct": <number correct>,
   "durationSeconds": <approximate seconds elapsed>,
   "files": ["<list of source files you read for this exam>"],

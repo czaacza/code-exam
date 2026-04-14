@@ -19,6 +19,7 @@ Do this naturally — don't interrupt mid-task. Only offer when the coding work 
 - `/exam --diff` — exam on current git diff or queued Claude changes
 - `/exam-status` — show GPA, streak, module grades, and codebase coverage
 - `/exam-achievements` — show earned badges and progress toward locked ones
+- `/exam-config` — configure exam settings (question count, difficulty, types, auto-exam)
 
 ## store.js CLI interface
 

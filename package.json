@@ -12,7 +12,8 @@
     "skills": [
       "skills/exam/skill.md",
       "skills/exam-status/skill.md",
-      "skills/exam-achievements/skill.md"
+      "skills/exam-achievements/skill.md",
+      "skills/exam-config/skill.md"
     ],
     "hooks": {
       "PostToolUse": "hooks/post-tool-use.js",

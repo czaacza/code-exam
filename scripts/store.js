@@ -9,6 +9,14 @@ const DIR = path.join(os.homedir(), '.code-exam');
 const SCORES_FILE = path.join(DIR, 'scores.jsonl');
 const STATS_FILE = path.join(DIR, 'stats.json');
 const QUEUE_FILE = path.join(DIR, 'queue.json');
+const CONFIG_FILE = path.join(DIR, 'config.json');
+
+const DEFAULT_CONFIG = {
+  questionCount: 3,
+  difficulty: 'auto',
+  questionTypes: ['multiple_choice', 'free_text', 'file_picker'],
+  autoExam: true,
+};
 
 function ensureDir() {
   if (!fs.existsSync(DIR)) {
@@ -242,6 +250,21 @@ function computeAchievements(scores, stats) {
   return { earned, locked };
 }
 
+function readConfig() {
+  ensureDir();
+  if (!fs.existsSync(CONFIG_FILE)) return { ...DEFAULT_CONFIG };
+  try {
+    return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+}
+
+function writeConfig(config) {
+  ensureDir();
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
 // CLI execution guard — only runs when called directly, not when require()'d in tests
 if (require.main === module) {
   const [,, command, ...args] = process.argv;
@@ -258,6 +281,20 @@ if (require.main === module) {
     case 'stats':
       console.log(JSON.stringify(readStats(), null, 2));
       break;
+    case 'config':
+      console.log(JSON.stringify(readConfig(), null, 2));
+      break;
+    case 'config-set':
+      const config = readConfig();
+      const key = args[0];
+      let val = args[1];
+      if (val === 'true') val = true;
+      else if (val === 'false') val = false;
+      else if (!isNaN(Number(val))) val = Number(val);
+      config[key] = val;
+      writeConfig(config);
+      console.log(JSON.stringify(config, null, 2));
+      break;
     case 'achievements': {
       const scores = readAllScores();
       const stats = readStats();
@@ -271,4 +308,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateGrade, calculateGPA, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements };
+module.exports = { ensureDir, readQueue, writeQueue, clearQueue, addToQueue, calculateGrade, calculateGPA, updateStreak, readStats, writeStats, recordResult, readAllScores, computeAchievements, readConfig, writeConfig, DEFAULT_CONFIG };
