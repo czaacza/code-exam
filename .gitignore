@@ -1,4 +1,12 @@
 node_modules/
+dist/
 *.jsonl
 stats.json
 queue.json
+.DS_Store
+.env
+.env.local
+npm-debug.log
+.idea/
+*.swp
+*.swo
