@@ -74,13 +74,30 @@ CodeProbe: 5 questions on <brief description of source>
 
 ## Step 5: Ask Questions One at a Time
 
-For each question, display:
+For each question, display a **code snippet** followed by the question. The snippet gives the user context to reason about the answer.
+
 ```
 Q{n}/5 [{Type} · {Difficulty}]
+
+📄 {file_path}:{start_line}-{end_line}
+┌─────────────────────────────────────
+│ {relevant code snippet, 5-20 lines}
+│ ...
+└─────────────────────────────────────
+
 {question text}
 
 {options if multiple choice or file picker, labeled A/B/C/D or 1/2/3/4}
 ```
+
+**Code snippet guidelines:**
+- Show the most relevant 5-20 lines of code that the question is about
+- Include the file path and line numbers so the user can locate the code
+- For Logic/Debug questions: show the specific function or block being asked about
+- For Impact/Flow questions: show the entry point or the connection between modules
+- For Architecture questions: show the structural code (imports, class definition, interface)
+- For file picker questions: you may omit the snippet since the question is about file locations
+- Do NOT show the answer in the snippet — e.g. if asking "what does this return?", show the function body but make sure the answer requires understanding, not just reading the return statement
 
 Wait for the user's answer before proceeding.
 
