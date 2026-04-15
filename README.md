@@ -146,10 +146,10 @@ code-exam/
 ├── .claude-plugin/                 ← marketplace manifest
 │
 ├── skills/
-│   ├── exam/skill.md               ← /exam: main exam skill
-│   ├── exam-status/skill.md        ← /exam-status: transcript display
-│   ├── exam-achievements/skill.md  ← /exam-achievements: badges
-│   └── exam-config/skill.md        ← /exam-config: settings
+│   ├── exam/SKILL.md               ← /exam: main exam skill
+│   ├── exam-status/SKILL.md        ← /exam-status: transcript display
+│   ├── exam-achievements/SKILL.md  ← /exam-achievements: badges
+│   └── exam-config/SKILL.md        ← /exam-config: settings
 │
 ├── hooks/
 │   ├── post-tool-use.js            ← tracks files Claude edits
