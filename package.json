@@ -10,10 +10,10 @@
   },
   "claude": {
     "skills": [
-      "skills/exam/skill.md",
-      "skills/exam-status/skill.md",
-      "skills/exam-achievements/skill.md",
-      "skills/exam-config/skill.md"
+      "skills/exam/SKILL.md",
+      "skills/exam-status/SKILL.md",
+      "skills/exam-achievements/SKILL.md",
+      "skills/exam-config/SKILL.md"
     ],
     "hooks": {
       "PostToolUse": "hooks/post-tool-use.js",
