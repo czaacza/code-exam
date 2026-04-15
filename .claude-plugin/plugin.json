@@ -1,5 +1,5 @@
 {
   "name": "code-exam",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Graded code exams for Claude Code — test your codebase knowledge with A-F grades, GPA tracking, and auto-exam after coding tasks"
 }
