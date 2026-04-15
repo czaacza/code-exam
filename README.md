@@ -95,11 +95,11 @@ claude --plugin-dir /path/to/code-exam
 
 | Grade | Score | GPA |
 |-------|-------|-----|
-| A | 90-100% | 4.0 |
-| B | 80-89% | 3.0 |
-| C | 70-79% | 2.0 |
-| D | 60-69% | 1.0 |
-| F | <60% | 0.0 |
+| A | 85-100% | 4.0 |
+| B | 65-84% | 3.0 |
+| C | 45-64% | 2.0 |
+| D | 30-44% | 1.0 |
+| F | <30% | 0.0 |
 
 Your cumulative GPA is a running average across all exams. Per-module GPAs show where you're strong and where you need work.
 

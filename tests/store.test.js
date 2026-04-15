@@ -57,32 +57,61 @@ test('calculateGrade: 100% = A, 4.0 GPA', () => {
   assert.strictEqual(result.pct, 100);
 });
 
-test('calculateGrade: 90% = A', () => {
-  const result = store.calculateGrade(0.9);
+test('calculateGrade: 85% = A (boundary)', () => {
+  const result = store.calculateGrade(0.85);
   assert.strictEqual(result.grade, 'A');
   assert.strictEqual(result.gpa, 4.0);
 });
 
-test('calculateGrade: 80% = B, 3.0 GPA', () => {
-  const result = store.calculateGrade(0.8);
+test('calculateGrade: 3/3 (100%) = A', () => {
+  const result = store.calculateGrade(3 / 3);
+  assert.strictEqual(result.grade, 'A');
+});
+
+test('calculateGrade: 2/3 (~67%) = B', () => {
+  const result = store.calculateGrade(2 / 3);
   assert.strictEqual(result.grade, 'B');
   assert.strictEqual(result.gpa, 3.0);
 });
 
-test('calculateGrade: 70% = C, 2.0 GPA', () => {
-  const result = store.calculateGrade(0.7);
+test('calculateGrade: 65% = B (boundary)', () => {
+  const result = store.calculateGrade(0.65);
+  assert.strictEqual(result.grade, 'B');
+  assert.strictEqual(result.gpa, 3.0);
+});
+
+test('calculateGrade: 50% = C', () => {
+  const result = store.calculateGrade(0.5);
   assert.strictEqual(result.grade, 'C');
   assert.strictEqual(result.gpa, 2.0);
 });
 
-test('calculateGrade: 60% = D, 1.0 GPA', () => {
-  const result = store.calculateGrade(0.6);
+test('calculateGrade: 45% = C (boundary)', () => {
+  const result = store.calculateGrade(0.45);
+  assert.strictEqual(result.grade, 'C');
+  assert.strictEqual(result.gpa, 2.0);
+});
+
+test('calculateGrade: 1/3 (~33%) = D', () => {
+  const result = store.calculateGrade(1 / 3);
   assert.strictEqual(result.grade, 'D');
   assert.strictEqual(result.gpa, 1.0);
 });
 
-test('calculateGrade: 40% = F, 0.0 GPA', () => {
-  const result = store.calculateGrade(0.4);
+test('calculateGrade: 30% = D (boundary)', () => {
+  const result = store.calculateGrade(0.3);
+  assert.strictEqual(result.grade, 'D');
+  assert.strictEqual(result.gpa, 1.0);
+});
+
+test('calculateGrade: 29% = F', () => {
+  const result = store.calculateGrade(0.29);
+  assert.strictEqual(result.grade, 'F');
+  assert.strictEqual(result.gpa, 0.0);
+});
+
+test('calculateGrade: 0/3 (0%) = F', () => {
+  const result = store.calculateGrade(0);
   assert.strictEqual(result.grade, 'F');
   assert.strictEqual(result.gpa, 0.0);
 });

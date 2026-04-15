@@ -38,7 +38,7 @@ Unexamined Modules:
   {list of modules with source files but no exams taken}
   (group by directory, show file count per module)
 
-Grading: A (90%+) · B (80-89%) · C (70-79%) · D (60-69%) · F (<60%)
+Grading: A (85%+) · B (65-84%) · C (45-64%) · D (30-44%) · F (<30%)
 
 Run /exam to take an exam.
 Run /exam-achievements to see your badges.
