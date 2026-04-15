@@ -165,11 +165,11 @@ After all questions, calculate the score and determine the letter grade:
 
 | Grade | Score | Meaning |
 |-------|-------|---------|
-| A | 90-100% | Excellent |
-| B | 80-89% | Good |
-| C | 70-79% | Satisfactory |
-| D | 60-69% | Below expectations |
-| F | <60% | Failing |
+| A | 85-100% | Excellent |
+| B | 65-84% | Good |
+| C | 45-64% | Satisfactory |
+| D | 30-44% | Below expectations |
+| F | <30% | Failing |
 
 Display:
 ```

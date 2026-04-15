@@ -60,10 +60,10 @@ function addToQueue(filePath) {
 }
 
 const GRADE_THRESHOLDS = [
-  { grade: 'A', minPct: 90, gpa: 4.0 },
-  { grade: 'B', minPct: 80, gpa: 3.0 },
-  { grade: 'C', minPct: 70, gpa: 2.0 },
-  { grade: 'D', minPct: 60, gpa: 1.0 },
+  { grade: 'A', minPct: 85, gpa: 4.0 },
+  { grade: 'B', minPct: 65, gpa: 3.0 },
+  { grade: 'C', minPct: 45, gpa: 2.0 },
+  { grade: 'D', minPct: 30, gpa: 1.0 },
   { grade: 'F', minPct: 0,  gpa: 0.0 },
 ];
 
